@@ -16,6 +16,4 @@ app.use(fileupload({}))
 app.use(express.static(path.resolve(__dirname, 'static/post')))
 app.use('/api', userRouter)
 app.use('/api', postRouter)
-
-
 app.listen(PORT, () => console.log(PORT))

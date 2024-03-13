@@ -3,6 +3,8 @@ const router = new Router()
 const userController = require('../controller/user.controller')
 
 router.post('/user', userController.createUser)
+router.post('/admin', userController.createAdmin)
+router.get('/admin', userController.adminLogin)
 router.put('/user', userController.setPictureUser)
 router.get('/user:email', userController.getUser)
 

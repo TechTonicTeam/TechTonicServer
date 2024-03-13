@@ -2,7 +2,8 @@ CREATE TABLE users (
     id SERIAL PRIMARY key,
     name VARCHAR(128),
     email VARCHAR(128),
-    picture VARCHAR(128)
+    picture VARCHAR(128),
+    password VARCHAR(256)
 );
 
 CREATE TABLE posts (
