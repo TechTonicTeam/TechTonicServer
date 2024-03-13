@@ -8,6 +8,10 @@ class UserController {
             if (!name || !email) {
                 throw new Error("Введены неверные данные")
             }
+            const currentUser = await db.query(`SELECT * from users where email=($1)`, [email])
+            if (currentUser.rows[0]) {
+                throw new Error("Пользователь уже существует!")
+            }
             const newUser = await db.query(`INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *`, [name, email])
             res.json(newUser)
         } catch (e) {
@@ -21,6 +25,10 @@ class UserController {
             const {email, password} = req.body
             if (!email || !password) {
                 throw new Error("Введены неверные данные")
+            }
+            const currentUser = await db.query(`SELECT * from users where email=($1)`, [email])
+            if (currentUser.rows[0]) {
+                throw new Error("Пользователь уже существует!")
             }
             const salt = await bcrypt.genSalt(10)
             const passwordHash = await bcrypt.hash(password, salt)
@@ -54,7 +62,10 @@ class UserController {
     async getUser(req, res) {
         try {
             const {email} = req.query
-            const user = await db.query(`SELECT id, name, email, picture FROM users WHERE email=($1)`, [email])
+            const user = await db.query(`SELECT id, name, email, picture, password FROM users WHERE email=($1)`, [email])
+            if (!!user.rows[0].password) {
+                throw new Error("")
+            }
             res.json(user.rows[0])
         } catch (e) {
             console.log(e.message)

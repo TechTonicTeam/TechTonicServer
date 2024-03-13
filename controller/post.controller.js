@@ -27,14 +27,52 @@ class postController {
 
     async getPost(req, res) {
         try {
-            const {user_id} = req.query
-            const posts = await db.query(`SELECT * from posts`)
-            const currentPost = await Promise.all(posts.rows.map(async (post) => {
-                const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
-                const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
-                return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
-            }))
-            res.json(currentPost.reverse())
+            const {sorting, user_id} = req.query
+            switch (sorting) {
+                case "Сначала популярные":
+                    const posts = await db.query(`SELECT * from posts ORDER BY likes DESC`)
+                    const currentPost = await Promise.all(posts.rows.map(async (post) => {
+                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
+                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
+                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
+                    }))
+                    res.json(currentPost)
+                    break;
+
+                case "Сначала старые":
+                    const descPost = await db.query(`SELECT * from posts ORDER BY id ASC`)
+                    const currentDescPost = await Promise.all(descPost.rows.map(async (post) => {
+                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
+                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
+                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
+                    }))
+                    res.json(currentDescPost)
+                    break;
+
+                case "Сначала мои предложения":
+                    const myPosts = await db.query(`SELECT * from posts where user_id=($1)`, [user_id])
+                    const withOutMyPost = await db.query(`SELECT * from posts where user_id!=($1)`, [user_id])
+                    const allPost = [
+                        ...myPosts.rows.reverse(),
+                        ...withOutMyPost.rows.reverse()
+                    ]
+                    const myCurrentPost = await Promise.all(allPost.map(async (post) => {
+                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
+                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
+                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
+                    }))
+                    res.json(myCurrentPost)
+                    break;
+                default:
+                    const standartPost = await db.query(`SELECT * from posts ORDER BY id DESC`)
+                    const standartPosts = await Promise.all(standartPost.rows.map(async (post) => {
+                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
+                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
+                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
+                    }))
+                    res.json(standartPosts)
+                    break;
+            }
         } catch (e) {
             console.log(e.message)
             res.json(e.message)
