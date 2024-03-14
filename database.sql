@@ -27,6 +27,7 @@ CREATE TABLE comments (
     title VARCHAR(256),
     post_id INT NOT NULL,
     user_id INT NOT NULL,
+    timestamp VARCHAR(128),
     likes INT,
     FOREIGN KEY (post_id) references posts(id),
     FOREIGN KEY (user_id) references users(id)
