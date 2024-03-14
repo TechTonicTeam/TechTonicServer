@@ -29,7 +29,6 @@ class postController {
         try {
             const {sorting, user_id} = req.query
             async function currentPost(posts) {
-                console.log(posts)
                 const standartPosts = await Promise.all(posts.map(async (post) => {
                     const comments = await db.query(`SELECT * from comments where post_id=($1)`, [post.id])
                     const currentComment = await Promise.all(comments.rows.map(async (comment) => {
