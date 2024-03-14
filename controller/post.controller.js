@@ -28,25 +28,33 @@ class postController {
     async getPost(req, res) {
         try {
             const {sorting, user_id} = req.query
+            async function currentPost(posts) {
+                console.log(posts)
+                const standartPosts = await Promise.all(posts.map(async (post) => {
+                    const comments = await db.query(`SELECT * from comments where post_id=($1)`, [post.id])
+                    const currentComment = await Promise.all(comments.rows.map(async (comment) => {
+                        const userComment = await db.query(`SELECT name, picture from users where id=($1)`, [comment.user_id])
+                        const likedComment = await db.query(`SELECT * from likedComment`)
+                        return {...comment, user: {...userComment.rows[0]}, liked: !!likedComment.rows[0]}
+                    }))
+                    const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
+                    const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
+                    return {...post, user: {...user.rows[0]}, comment: currentComment, liked: !!like.rows[0]}
+                }))
+                return standartPosts
+            }
+
             switch (sorting) {
                 case "Сначала популярные":
                     const posts = await db.query(`SELECT * from posts ORDER BY likes DESC`)
-                    const currentPost = await Promise.all(posts.rows.map(async (post) => {
-                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
-                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
-                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
-                    }))
-                    res.json(currentPost)
+                    const popularPost = await currentPost(posts.rows)
+                    res.json(popularPost)
                     break;
 
                 case "Сначала старые":
                     const descPost = await db.query(`SELECT * from posts ORDER BY id ASC`)
-                    const currentDescPost = await Promise.all(descPost.rows.map(async (post) => {
-                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
-                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
-                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
-                    }))
-                    res.json(currentDescPost)
+                    const olderPost = await currentPost(descPost.rows)
+                    res.json(olderPost)
                     break;
 
                 case "Сначала мои предложения":
@@ -56,21 +64,14 @@ class postController {
                         ...myPosts.rows.reverse(),
                         ...withOutMyPost.rows.reverse()
                     ]
-                    const myCurrentPost = await Promise.all(allPost.map(async (post) => {
-                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
-                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
-                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
-                    }))
-                    res.json(myCurrentPost)
+                    const allMyPost = await currentPost(allPost)
+                    console.log(allMyPost)
+                    res.json(allMyPost)
                     break;
                 default:
                     const standartPost = await db.query(`SELECT * from posts ORDER BY id DESC`)
-                    const standartPosts = await Promise.all(standartPost.rows.map(async (post) => {
-                        const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
-                        const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
-                        return {...post, user: {...user.rows[0]}, liked: !!like.rows[0]}
-                    }))
-                    res.json(standartPosts)
+                    const newPosts = await currentPost(standartPost.rows)
+                    res.json(newPosts)
                     break;
             }
         } catch (e) {

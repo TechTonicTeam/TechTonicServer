@@ -22,3 +22,21 @@ CREATE TABLE likedPost (
     FOREIGN KEY (user_id) references users(id),
     FOREIGN KEY (post_id) references posts(id)
 );
+
+CREATE TABLE comments (
+    id SERIAL PRIMARY key,
+    title VARCHAR(256),
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    timestamp VARCHAR(128),
+    likes INT,
+    FOREIGN KEY (post_id) references posts(id),
+    FOREIGN KEY (user_id) references users(id)
+);
+
+CREATE TABLE likedComment (
+    comment_id INT NOT NULL,
+    user_id INT NOT NULL,
+    FOREIGN KEY (comment_id) references comments(id),
+    FOREIGN KEY (user_id) references users(id)
+);
