@@ -33,7 +33,7 @@ class postController {
                     const comments = await db.query(`SELECT * from comments where post_id=($1)`, [post.id])
                     const currentComment = await Promise.all(comments.rows.map(async (comment) => {
                         const userComment = await db.query(`SELECT name, picture from users where id=($1)`, [comment.user_id])
-                        const likedComment = await db.query(`SELECT * from likedComment`)
+                        const likedComment = await db.query(`SELECT * from likedComment where user_id=($1) and comment_id=($2)`, [user_id, comment.id])
                         return {...comment, user: {...userComment.rows[0]}, liked: !!likedComment.rows[0]}
                     }))
                     const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
