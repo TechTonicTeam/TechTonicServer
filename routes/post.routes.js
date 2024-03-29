@@ -1,6 +1,7 @@
 const Router = require('express')
 const router = new Router()
 const postController = require('../controller/post.controller')
+const authMiddleware = require('../middleware/auth-middleware')
 
 router.post('/post', postController.createPost)
 router.put('/post/like', postController.incrementLike)

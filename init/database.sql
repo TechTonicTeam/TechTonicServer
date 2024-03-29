@@ -6,6 +6,12 @@ CREATE TABLE users (
     password VARCHAR(256)
 );
 
+CREATE TABLE tokens (
+    user_id INT NOT NULL,
+    token TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 CREATE TABLE posts (
     id SERIAL PRIMARY key,
     title VARCHAR(128),
@@ -15,6 +21,7 @@ CREATE TABLE posts (
     likes INT,
     FOREIGN KEY (user_id) references users(id)
 );
+
 
 CREATE TABLE likedPost (
     user_id INT NOT NULL,
@@ -40,3 +47,5 @@ CREATE TABLE likedComment (
     FOREIGN KEY (comment_id) references comments(id),
     FOREIGN KEY (user_id) references users(id)
 );
+
+INSERT INTO users (name, email) VALUES ('Рябичев Максим Максимович', 'n3wers@gmail.com');

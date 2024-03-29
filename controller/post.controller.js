@@ -64,7 +64,6 @@ class postController {
                         ...withOutMyPost.rows.reverse()
                     ]
                     const allMyPost = await currentPost(allPost)
-                    console.log(allMyPost)
                     res.json(allMyPost)
                     break;
                 default:

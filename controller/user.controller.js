@@ -1,5 +1,6 @@
 const db =  require('../db.js')
-const bcrypt = require('bcrypt')
+const bcryptjs = require('bcryptjs')
+const tokenService = require('../services/token-service.js')
 
 class UserController {
     async createUser(req, res) {
@@ -13,6 +14,9 @@ class UserController {
                 throw new Error("Пользователь уже существует!")
             }
             const newUser = await db.query(`INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *`, [name, email])
+            const tokens = tokenService.generateToken({id: newUser.rows[0].id, email: newUser.rows[0].email, admin: false})
+            await tokenService.saveToken(newUser.rows[0].id, tokens.refreshToken)
+            res.cookie('refreshToken', tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true})
             res.json(newUser)
         } catch (e) {
             console.log(e.message)
@@ -30,9 +34,12 @@ class UserController {
             if (currentUser.rows[0]) {
                 throw new Error("Пользователь уже существует!")
             }
-            const salt = await bcrypt.genSalt(10)
-            const passwordHash = await bcrypt.hash(password, salt)
-            await db.query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3)`, ['ADMIN', email, passwordHash])
+            const salt = await bcryptjs.genSalt(10)
+            const passwordHash = await bcryptjs.hash(password, salt)
+            const adminUser = await db.query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *`, ['ADMIN', email, passwordHash])
+            const tokens = tokenService.generateToken({id: adminUser.rows[0].id, email: adminUser.rows[0].email, admin: true})
+            await tokenService.saveToken(adminUser.rows[0].id, tokens.refreshToken)
+            res.cookie('refreshToken', tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true})
             res.json('Админ создан')
         } catch (e) {
             console.log(e.message)
@@ -48,7 +55,7 @@ class UserController {
             }
             const hash = await db.query(`SELECT id, password from users where email=($1)`, [email])
             if (hash.rows[0]) {
-                const truePassword = await bcrypt.compare(password, hash.rows[0].password)
+                const truePassword = await bcryptjs.compare(password, hash.rows[0].password)
                 res.json({truePassword, id: hash.rows[0].id})
             } else {
                 throw new Error("Ошибка")
