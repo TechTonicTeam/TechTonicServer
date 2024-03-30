@@ -50,7 +50,6 @@ class postController {
                         ...withOutMyPost.rows.reverse()
                     ]
                     const allMyPost = await PostService.mergePostCommentLike(allPost, user_id)
-                    console.log("dsd")
                     res.json(allMyPost)
                     break;
                 default:

@@ -57,7 +57,7 @@ class UserController {
             }
             const tokens = await UserService.genTokens(user.rows[0].id, email, true)
             res.cookie('refreshToken', tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true})
-            res.json({user: {id: user.rows[0].id, name: user.rows[0].name, email}, accessToken: tokens.accessToken})
+            res.json({user: {id: user.rows[0].id, name: user.rows[0].name, email, adminRole: true}, accessToken: tokens.accessToken})
         } catch (e) {
             next(e)
         }
@@ -72,7 +72,7 @@ class UserController {
             }
             const tokens = await UserService.genTokens(user.rows[0].id, email, false)
             res.cookie('refreshToken', tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true})
-            res.json({...user.rows[0], accessToken: tokens.accessToken})
+            res.json({user: {id: user.rows[0].id, name: user.rows[0].name, picture: user.rows[0].picture, email, adminRole: false}, accessToken: tokens.accessToken})
         } catch (e) {
             next(e)
         }
@@ -100,9 +100,8 @@ class UserController {
                 throw ApiError.UnauthorizedError()
             }
             const currentUser = await db.query(`SELECT id, email, name, picture, password FROM users WHERE id=($1)`, [validateToken.id])
-            const userInfo = {id: currentUser.rows[0].id, email: currentUser.rows[0].email, admin: !!currentUser.rows[0].password, name: currentUser.rows[0].name}
+            const userInfo = {id: currentUser.rows[0].id, email: currentUser.rows[0].email, adminRole: !!currentUser.rows[0].password, name: currentUser.rows[0].name, picture: currentUser.rows[0].picture}
             const accessToken = await jwt.sign(userInfo, process.env.JWT_ACCESS_SECRET, {expiresIn: '30m'})
-            console.log(accessToken)
             res.json({accessToken, user: userInfo})
         } catch (e) {
             next(e)
