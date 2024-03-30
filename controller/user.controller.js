@@ -84,7 +84,7 @@ class UserController {
             db.query(`UPDATE users SET picture=($1) WHERE id=($2)`, [picture, id])
             res.json("Пользователь обновлен!")
         } catch (e) {
-            console.log(e.message)
+            next(e)
         }
     }
 
@@ -100,10 +100,22 @@ class UserController {
                 throw ApiError.UnauthorizedError()
             }
             const currentUser = await db.query(`SELECT id, email, name, picture, password FROM users WHERE id=($1)`, [validateToken.id])
-            const accessToken = await jwt.sign({id: currentUser.rows[0].id, email: currentUser.rows[0].email, admin: !!currentUser.rows[0].password, name: currentUser.rows[0].name}, process.env.JWT_ACCESS_SECRET, {expiresIn: '30m'})
+            const userInfo = {id: currentUser.rows[0].id, email: currentUser.rows[0].email, admin: !!currentUser.rows[0].password, name: currentUser.rows[0].name}
+            const accessToken = await jwt.sign(userInfo, process.env.JWT_ACCESS_SECRET, {expiresIn: '30m'})
             console.log(accessToken)
-            res.json({accessToken, user: currentUser.rows[0]})
+            res.json({accessToken, user: userInfo})
         } catch (e) {
+            next(e)
+        }
+    }
+
+    async logout(req, res, next) { 
+        try {
+            const {refreshToken} = req.cookies
+            await db.query(`DELETE from tokens WHERE token=($1)`, [refreshToken])
+            res.clearCookie('refreshToken')
+            res.status(200).json('Успешный выход')
+        } catch (e) { 
             next(e)
         }
     }
