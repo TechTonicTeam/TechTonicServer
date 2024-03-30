@@ -1,12 +1,14 @@
 const uuid = require('uuid')
 const path = require('path')
 const db = require('../db')
+const ApiError = require('../exciptions/api-error')
+const PostService = require('../services/post-service')
 class postController {
-    async createPost(req, res) {
+    async createPost(req, res, next) {
         try {
             const {title, user_id, timestamp} = req.body
             if (!title || !user_id || !timestamp) {
-                throw new Error("Неверные данные")
+                throw new ApiError.BadRequest("Данные введены неверно")
             }
 
             if (!!req.files) {
@@ -20,39 +22,23 @@ class postController {
             }
             res.json("Пост создан")
         } catch (e) {
-            console.log(e.message)
-            res.json(e.message)
+            next(e)
         }
     }
 
-    async getPost(req, res) {
+    async getPost(req, res, next) {
         try {
             const {sorting, user_id} = req.query
-            async function currentPost(posts) {
-                const standartPosts = await Promise.all(posts.map(async (post) => {
-                    const comments = await db.query(`SELECT * from comments where post_id=($1)`, [post.id])
-                    const currentComment = await Promise.all(comments.rows.map(async (comment) => {
-                        const userComment = await db.query(`SELECT name, picture from users where id=($1)`, [comment.user_id])
-                        const likedComment = await db.query(`SELECT * from likedComment where user_id=($1) and comment_id=($2)`, [user_id, comment.id])
-                        return {...comment, user: {...userComment.rows[0]}, liked: !!likedComment.rows[0]}
-                    }))
-                    const user = await db.query(`SELECT name, picture from users WHERE id=($1)`, [post.user_id])
-                    const like = await db.query(`SELECT * from likedPost where post_id=($1) and user_id=($2)`, [post.id, user_id])
-                    return {...post, user: {...user.rows[0]}, comment: currentComment, liked: !!like.rows[0]}
-                }))
-                return standartPosts
-            }
-
             switch (sorting) {
                 case "Сначала популярные":
                     const posts = await db.query(`SELECT * from posts ORDER BY likes DESC`)
-                    const popularPost = await currentPost(posts.rows)
+                    const popularPost = await PostService.mergePostCommentLike(posts.rows, user_id)
                     res.json(popularPost)
                     break;
 
                 case "Сначала старые":
                     const descPost = await db.query(`SELECT * from posts ORDER BY id ASC`)
-                    const olderPost = await currentPost(descPost.rows)
+                    const olderPost = await PostService.mergePostCommentLike(descPost.rows, user_id)
                     res.json(olderPost)
                     break;
 
@@ -63,44 +49,38 @@ class postController {
                         ...myPosts.rows.reverse(),
                         ...withOutMyPost.rows.reverse()
                     ]
-                    const allMyPost = await currentPost(allPost)
+                    const allMyPost = await PostService.mergePostCommentLike(allPost, user_id)
+                    console.log("dsd")
                     res.json(allMyPost)
                     break;
                 default:
                     const standartPost = await db.query(`SELECT * from posts ORDER BY id DESC`)
-                    const newPosts = await currentPost(standartPost.rows)
+                    const newPosts = await PostService.mergePostCommentLike(standartPost.rows, user_id)
                     res.json(newPosts)
                     break;
             }
         } catch (e) {
-            console.log(e.message)
-            res.json(e.message)
+            next(e)
         }
     }
 
-    async incrementLike(req, res) {
+    async incrementLike(req, res, next) {
         try {
             const {postId, userId} = req.body
-            const like = await db.query(`SELECT likes from posts where id=($1)`, [postId])
-            await db.query(`UPDATE posts SET likes=($1) where id=($2)`, [like.rows[0].likes + 1, postId])
-            await db.query(`INSERT INTO likedPost (user_id, post_id) VALUES ($1, $2)`, [userId, postId])
+            await PostService.updateLike(postId, userId, true)
             res.json('Лайки обновлены')
         } catch (e) {
-            console.log(e.message)
-            res.json(e.message)
+            next(e)
         }
     }
 
-    async decrementLike(req, res) {
+    async decrementLike(req, res, next) {
         try {
             const {postId, userId} = req.body
-            const like = await db.query(`SELECT likes from posts where id=($1)`, [postId])
-            await db.query(`UPDATE posts SET likes=($1) where id=($2)`, [like.rows[0].likes-1, postId])
-            await db.query(`DELETE from likedPost where post_id=($1) and user_id=($2)`, [postId, userId])
+            await PostService.updateLike(postId, userId, false)
             res.json('Лайки обновлены')
         } catch (e) {
-            console.log(e.message)
-            res.json(e.message)
+            next(e)
         }
     }
 }
