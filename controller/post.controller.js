@@ -66,8 +66,8 @@ class postController {
 
     async incrementLike(req, res, next) {
         try {
-            const {postId, userId} = req.body
-            await PostService.updateLike(postId, userId, true)
+            const {post_id, user_id} = req.body
+            await PostService.updateLike(post_id, user_id, true)
             res.json('Лайки обновлены')
         } catch (e) {
             next(e)
@@ -76,8 +76,8 @@ class postController {
 
     async decrementLike(req, res, next) {
         try {
-            const {postId, userId} = req.body
-            await PostService.updateLike(postId, userId, false)
+            const {post_id, user_id} = req.body
+            await PostService.updateLike(post_id, user_id, false)
             res.json('Лайки обновлены')
         } catch (e) {
             next(e)

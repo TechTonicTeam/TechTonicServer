@@ -1,7 +1,8 @@
 const db = require('../db')
+const CommentService = require('../services/comment-service')
 
 class CommentController {
-    async createComment(req, res) {
+    async createComment(req, res, next) {
         try {
             const {title, post_id, user_id, timestamp} = req.body
             if (!title || !post_id || !user_id || !timestamp) {
@@ -10,34 +11,27 @@ class CommentController {
             await db.query(`INSERT INTO comments (title, post_id, user_id, timestamp, likes) VALUES ($1, $2, $3, $4, $5)`, [title, post_id, user_id, timestamp, 0])
             res.json('комментарий создан')
         } catch (e) {
-            console.log(e.message)
-            res.json(e.message)
+            next(e)
         }
     }
 
-    async likeComment(req, res) {
+    async likeComment(req, res, next) {
         try {
             const {user_id, comment_id} = req.query
-            const like = await db.query(`SELECT likes from comments where id=($1)`, [comment_id])
-            await db.query(`UPDATE comments SET likes=($1) where id=($2)`, [like.rows[0].likes+1, comment_id])
-            await db.query(`INSERT INTO likedComment (user_id, comment_id) VALUES ($1, $2)`, [user_id, comment_id])
+            await CommentService.updateLike(user_id, comment_id, true)
             res.json('Комменты обновлены')
         } catch (e) {
-            console.log(e.message)
-            res.json(e.message)
+            next(e)
         }
     }
 
-    async dislikeComment(req, res) {
+    async dislikeComment(req, res, next) {
         try {
             const {user_id, comment_id} = req.query
-            const like = await db.query(`SELECT likes from comments where id=($1)`, [comment_id])
-            await db.query(`UPDATE comments SET likes=($1) where id=($2)`, [like.rows[0].likes-1, comment_id])
-            await db.query(`DELETE from likedComment where comment_id=($1) and user_id=($2)`, [comment_id, user_id])
+            await CommentService.updateLike(user_id, comment_id, false)
             res.json('Комменты обновлены')
         } catch (e) {
-            console.log(e.message)
-            res.json(e.message)
+            next(e)
         }
     }
 }
