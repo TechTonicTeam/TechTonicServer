@@ -6,6 +6,7 @@ router.post('/user', userController.createUser)
 router.post('/admin', userController.createAdmin)
 router.get('/admin', userController.adminLogin)
 router.put('/user', userController.setPictureUser)
-router.get('/user:email', userController.getUser)
+router.get('/login', userController.loginUser)
+router.get('/refresh', userController.refresh)
 
 module.exports = router

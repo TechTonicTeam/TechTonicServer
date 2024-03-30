@@ -14,6 +14,7 @@ class TokenService {
     async saveToken(userId, refreshToken) { 
         const tokenData = await db.query(`SELECT token from tokens where user_id=($1)`, [userId])
         if (tokenData) {
+            await db.query(`DELETE from tokens WHERE user_id=($1)`, [userId])
             await db.query(`INSERT INTO tokens (user_id, token) VALUES ($1, $2)`, [userId, refreshToken])
         }
     }

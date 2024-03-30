@@ -1,25 +1,28 @@
 const db = require('../db')
 const tokenService = require('../services/token-service')
+const bcryptjs = require('bcryptjs')
 
 class UserService {
-    async refresh(req, res) { 
-        try {
-            const refreshToken = req.cookie('refreshToken')
-            if (!refreshToken) {
-                throw new Error('Не авторизован 401')
-            }
-            const validateToken = tokenService.verifyRefreshToken(refreshToken)
-            const refreshTokenFromDB = await db.query(`SELECT token FROM tokens WHERE user_id=($1)`, [validateToken.id])
-            if (!validateToken || !refreshTokenFromDB) {
-                throw new Error('Не авторизован 401')
-            }
-            const currentUser = await db.query(`SELECT * FROM users WHERE id=($1)`, [validateToken.id])
-            const tokens = tokenService.generateToken(currentUser)
-            tokenService.saveToken(currentUser.id, tokens.refreshToken)
-            return {...tokens, user: currentUser}
-        } catch (e) {
-            console.log(e.message)
+    async createHashPassword(password) {
+        const salt = await bcryptjs.genSalt(10)
+        const passwordHash = await bcryptjs.hash(password, salt)
+        return passwordHash
+    }
+
+    async createNewUser(name, email, passwordHash, adminRole) {
+        let newUser;
+        if (adminRole) {
+            newUser = await db.query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *`, [name, email, passwordHash])
+        } else {
+            newUser = await db.query(`INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *`, [name, email])
         }
+        return newUser
+    }
+
+    async genTokens(userId, email, adminRole) { 
+        const tokens = tokenService.generateToken({id: userId, email, admin: adminRole})
+        await tokenService.saveToken(userId, tokens.refreshToken)
+        return tokens
     }
 }
 
